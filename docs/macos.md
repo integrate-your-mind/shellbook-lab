@@ -35,7 +35,7 @@ On launch, the app places its main window on the preferred external display. It 
 
 Current proof:
 
-- `swift test --package-path macos/ShellbookLabMac` passed 3 tests.
+- `swift test --package-path macos/ShellbookLabMac` passed 6 tests.
 - `./script/build_and_run.sh --verify` built the bundle, launched it, and verified the `ShellbookLabMac` process.
 
 Known limitation:

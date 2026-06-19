@@ -33,3 +33,5 @@ The app provides:
 - Settings: edits the local dashboard base URL.
 
 `NSAllowsLocalNetworking` is enabled for local HTTP access only.
+
+The unit-test target uses a generated Info.plist so simulator tests can code sign locally under Xcode 17.

@@ -41,6 +41,9 @@ targets:
       - path: ShellbookLabTests
     dependencies:
       - target: ShellbookLab
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   ShellbookLab:
     build:
