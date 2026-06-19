@@ -76,7 +76,7 @@ async function collect(path: string, out: string[]): Promise<void> {
     return;
   }
   const name = basename(path);
-  if (["node_modules", ".git", ".next", "dist", "coverage"].includes(name)) {
+  if (["node_modules", ".git", ".next", ".build", ".swiftpm", "dist", "coverage"].includes(name)) {
     return;
   }
   const entries = await readdir(path);

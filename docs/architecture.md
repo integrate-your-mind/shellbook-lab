@@ -2,7 +2,7 @@
 
 Shellbook Lab is intentionally outside Shellbook. It only calls documented or observable CLI commands and stores its own state under `.shellbook-lab/` in the current project unless a user passes a different path.
 
-The current dashboard is a Next.js App Router app. It keeps the CLI as the stable contract while exposing server-only API routes for dashboard actions.
+The current dashboard is a Next.js App Router app. It keeps the CLI as the stable contract while exposing server-only API routes for dashboard actions. Tailwind v4 source detection is explicit in `app/globals.css` so the dashboard build does not rely on automatic source discovery.
 
 ## Modules
 
@@ -35,7 +35,12 @@ The dashboard composes these as microfrontend-style feature panels in `src/micro
 
 The Next API routes under `app/api/**/route.ts` are the HTTP boundary. They run in the Node.js runtime so filesystem, git, tmux, and Shellbook probes stay out of the browser bundle.
 
-The Shellbook Labs TUI calls the same ops service primitives as the web dashboard. That keeps the CLI, TUI, Next dashboard, and iOS app on one local DTO shape instead of inventing per-surface logic.
+The Shellbook Labs TUI calls the same ops service primitives as the web dashboard. That keeps the CLI, TUI, Next dashboard, iOS app, and macOS app on one local DTO shape instead of inventing per-surface logic.
+
+## Native Apps
+
+- `ios/ShellbookLab`: SwiftUI iOS companion app backed by the local API.
+- `macos/ShellbookLabMac`: SwiftPM SwiftUI macOS companion app with a native sidebar-detail layout and Codex Run action through `script/build_and_run.sh`.
 
 ## Data
 

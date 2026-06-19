@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -26,4 +26,18 @@ test("privacy audit blocks Shellbook config and token-looking content", async ()
 
   assert.equal(result.ok, false);
   assert.equal(result.data.findings.length >= 2, true);
+});
+
+test("privacy audit ignores generated SwiftPM build directories", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "shellbook-lab-swift-build-"));
+  const buildDir = join(dir, ".build", "debug");
+  const tokenPrefix = ["sk", "proj"].join("-");
+  await mkdir(buildDir, { recursive: true });
+  await writeFile(join(buildDir, "generated.txt"), `token ${tokenPrefix}_abcdefghijklmnopqrstuvwxyz`);
+  await writeFile(join(dir, "README.md"), "# clean\n");
+
+  const result = await auditPrivacy({ paths: [dir], maxBytes: 1000 });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.data.findings.length, 0);
 });

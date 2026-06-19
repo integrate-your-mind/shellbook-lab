@@ -3,6 +3,8 @@ dist/
 .next/
 .shellbook-lab/
 coverage/
+**/.build/
+**/.swiftpm/
 .DS_Store
 *.log
 *.tsbuildinfo

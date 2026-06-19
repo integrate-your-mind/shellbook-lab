@@ -29,6 +29,7 @@ During development:
 npm run dev -- plan
 npm run dev -- bot --kind room --target lounge --message "build passed"
 npm run dev:web
+npm run mac:run
 ```
 
 ## Safety Model
@@ -91,3 +92,17 @@ See [docs/code-quality.md](docs/code-quality.md) for CRAP, smell, DRY, and funct
 A native SwiftUI companion app lives in [ios/ShellbookLab](ios/ShellbookLab). It uses the local dashboard API at `http://127.0.0.1:8791` by default and provides dashboard, action, and presence tabs.
 
 See [docs/ios.md](docs/ios.md) for generation, build, and runtime notes.
+
+## macOS App
+
+A native SwiftUI macOS companion app lives in [macos/ShellbookLabMac](macos/ShellbookLabMac). It uses a desktop sidebar-detail layout for dashboard health, Mission Control, replay, actions, presence, and modules.
+
+Useful commands:
+
+```sh
+npm run mac:test
+npm run mac:build
+npm run mac:run
+```
+
+See [docs/macos.md](docs/macos.md) for build/run and verification notes.

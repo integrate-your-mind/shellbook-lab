@@ -11,22 +11,27 @@ Current local proof after the Shellbook Labs TUI, Mission Control, and replay pa
 
 - `npm run lint` passed with the custom repository lint gate.
 - `npm run typecheck` passed with TypeScript strict mode.
-- `npm test` passed 32 Node test-runner tests after running `next build --webpack` and `tsc -p tsconfig.cli.json`.
-- `npm test` now enforces `--test-coverage-lines=85`; the current full run reported 89.97% line coverage.
+- `npm test` passed 34 Node test-runner tests after running `next build --webpack` and `tsc -p tsconfig.cli.json`.
+- `npm test` now enforces `--test-coverage-lines=85`; the current full run reported 90.12% line coverage.
 - `npm run build` passed before browser and simulator QA.
+- The web style gate verifies the built Next CSS contains the Tailwind dashboard utilities after explicit `@source` registration in `app/globals.css`.
 - Dashboard HTTP `/api/snapshot` returned `@bunny`, 10 modules, 1 mission, and 0 replay frames on the running local server.
 - `POST /api/presence` rejects invalid statuses with HTTP 400 and accepts `available`.
-- Runtime privacy audit passed with no blockers across 88 source files after excluding generated build output.
+- Runtime privacy audit passed with no blockers across 110 source files after excluding generated build output.
 - Browser QA loaded the dashboard, found all 10 feature panels, clicked each top-level action, checked desktop and mobile viewports, verified no horizontal overflow, and observed zero console warnings/errors.
 - CLI/TUI checks covered normal, failure, and odd paths: TUI render, mission/replay JSON, invalid `--limit`, invalid TUI view, degraded replay health, redacted replay argv, stale mission state, and presence fallback.
 - iOS simulator QA passed with `xcodebuildmcp test_sim`: 3 unit tests, 0 failures.
 - iOS simulator launch passed with `xcodebuildmcp build_run_sim`; runtime snapshot verified Dashboard with `@bunny`, ready health, local presence, metrics, and tabs.
+- macOS SwiftPM QA passed with `npm run mac:test`: 3 tests, 0 failures.
+- macOS launch verification passed with `./script/build_and_run.sh --verify`; it staged `dist/ShellbookLabMac.app`, launched it, and verified the `ShellbookLabMac` process.
 
 Screenshots from the latest QA pass:
 
 - `/Users/romanmondello/Documents/Codex/2026-06-18/instal/outputs/shellbook-lab-tui-mission-dashboard.png`
 - `/Users/romanmondello/Documents/Codex/2026-06-18/instal/outputs/shellbook-lab-tui-mission-mobile.png`
 - `/Users/romanmondello/Documents/Codex/2026-06-18/instal/outputs/shellbook-lab-ios-tui-mission-qa.jpg`
+- `/Users/romanmondello/Documents/Codex/2026-06-18/instal/outputs/shellbook-lab-css-before.png`
+- `/Users/romanmondello/Documents/Codex/2026-06-18/instal/outputs/shellbook-lab-css-after.png`
 
 Manual Shellbook checks performed before scaffolding:
 
