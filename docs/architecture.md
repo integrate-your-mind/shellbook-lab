@@ -2,6 +2,8 @@
 
 Shellbook Lab is intentionally outside Shellbook. It only calls documented or observable CLI commands and stores its own state under `.shellbook-lab/` in the current project unless a user passes a different path.
 
+The current dashboard is a Next.js App Router app. It keeps the CLI as the stable contract while exposing server-only API routes for dashboard actions.
+
 ## Modules
 
 - `agent-ops`: records wrapped command metadata and serves dashboard snapshots.
@@ -14,6 +16,21 @@ Shellbook Lab is intentionally outside Shellbook. It only calls documented or ob
 - `analytics`: local metrics from Shellbook-safe sources and wrapper events.
 - `bridge`: opens Shellbook TUI/tmux sessions through public commands.
 - `wrap`: opt-in agent command wrapper with exit-code capture.
+
+The dashboard composes these as microfrontend-style feature panels in `src/microfrontends/index.tsx`. The panel registry is derived from the canonical module plan and adds only UI/action metadata per module.
+
+## Service Seams
+
+`src/services/dashboard-service.ts` is the in-process microservice seam. It uses Effect to compose:
+
+- health checks from `doctor`
+- wrapper analytics
+- PR state
+- privacy audit
+- handoff preview
+- presence read/write
+
+The Next API routes under `app/api/**/route.ts` are the HTTP boundary. They run in the Node.js runtime so filesystem, git, tmux, and Shellbook probes stay out of the browser bundle.
 
 ## Data
 
@@ -45,4 +62,3 @@ Avoided surfaces:
 - direct reads from Shellbook message bodies
 - private database schema coupling
 - `sync push/all`, admin commands, setup mutation, upgrades, and uninstall flows
-

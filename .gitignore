@@ -1,10 +1,12 @@
 node_modules/
 dist/
+.next/
+.shellbook-lab/
 coverage/
 .DS_Store
 *.log
+*.tsbuildinfo
 .env
 .env.*
 !.env.example
 tmp/
-

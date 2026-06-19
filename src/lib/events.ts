@@ -15,10 +15,15 @@ export async function appendEvent(stateDir: string, event: RunEvent): Promise<vo
 export async function readEvents(stateDir: string): Promise<RunEvent[]> {
   try {
     const raw = await readFile(eventPath(stateDir), "utf8");
-    return raw
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => JSON.parse(line) as RunEvent);
+    const events: RunEvent[] = [];
+    for (const line of raw.split("\n").filter(Boolean)) {
+      try {
+        events.push(JSON.parse(line) as RunEvent);
+      } catch {
+        continue;
+      }
+    }
+    return events;
   } catch {
     return [];
   }
@@ -27,4 +32,3 @@ export async function readEvents(stateDir: string): Promise<RunEvent[]> {
 export function repoName(repo: string): string {
   return basename(repo.replace(/\/$/, "")) || "unknown";
 }
-

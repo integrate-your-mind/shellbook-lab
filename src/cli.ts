@@ -69,8 +69,10 @@ async function main(argv: string[]): Promise<void> {
   }
 
   const result = await run(parsed);
-  await printResult(result, parsed.globals);
-  if (!result.ok) {
+  if (parsed.command !== "statusline") {
+    await printResult(result, parsed.globals);
+  }
+  if (!result.ok && parsed.command !== "wrap") {
     process.exitCode = parsed.command === "privacy" ? 3 : 2;
   }
 }
@@ -245,4 +247,3 @@ main(process.argv.slice(2)).catch((error: unknown) => {
   console.error(`error: ${message}`);
   process.exit(1);
 });
-

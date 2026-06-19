@@ -2,7 +2,7 @@
 
 Shellbook Lab is a local-first companion toolkit for [Shellbook](https://shellbook.co). It builds useful automation around the public Shellbook CLI surface without depending on private `~/.shellbook` schemas or undocumented network APIs.
 
-The first release implements all ten proposed extension areas as a coherent TypeScript CLI:
+The first release implements all ten proposed extension areas as a coherent TypeScript CLI plus a local Next.js dashboard:
 
 1. Agent Ops Dashboard
 2. Room/DM Bots
@@ -27,8 +27,8 @@ During development:
 
 ```sh
 npm run dev -- plan
-npm run dev -- dashboard --open=false
-npm run dev -- bot --kind room --target lounge --message "build passed" --dry-run
+npm run dev -- bot --kind room --target lounge --message "build passed"
+npm run dev:web
 ```
 
 ## Safety Model
@@ -45,7 +45,7 @@ Shellbook Lab defaults to local-only behavior:
 
 ```text
 shellbook-lab plan                 # show all 10 extension modules and maturity
-shellbook-lab dashboard            # launch a local dashboard server
+shellbook-lab dashboard            # launch the local Next.js dashboard server
 shellbook-lab bot                  # dry-run or send Shellbook room/DM posts
 shellbook-lab pr-watch             # inspect local git/GitHub PR state
 shellbook-lab handoff              # generate Markdown/JSON handoff cards
@@ -70,3 +70,12 @@ npm run build
 ```
 
 See [docs/verification.md](docs/verification.md) for the latest proof notes.
+
+## Dashboard Stack
+
+- Next.js App Router serves the dashboard and API routes.
+- Effect wraps dashboard service calls and degraded-mode failures.
+- Zustand owns client UI state, selected feature panel, and button actions.
+- shadcn-style primitives provide the local UI component base.
+
+See [docs/code-quality.md](docs/code-quality.md) for CRAP, smell, DRY, and functionality notes.

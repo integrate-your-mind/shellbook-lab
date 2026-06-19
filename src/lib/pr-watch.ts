@@ -19,18 +19,19 @@ export async function prWatch(options: { repo: string; timeoutMs: number }): Pro
   const status = await run("git", ["status", "--short"], options);
   const upstream = await run("git", ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], options);
   const ghPr = await run("gh", ["pr", "view", "--json", "number,title,state,url,isDraft,mergeStateStatus"], options);
+  const parsedPr = ghPr.ok ? parseJson(ghPr.stdout) : null;
 
   return {
     ok: true,
     title: "pr watcher",
-    summary: ghPr.ok ? "Local git and GitHub PR state checked." : "Local git checked; no current GitHub PR found.",
+    summary: parsedPr ? "Local git and GitHub PR state checked." : "Local git checked; no current GitHub PR found.",
     data: {
       root: gitRoot.stdout.trim(),
       branch: branch.stdout.trim() || "detached",
       dirtyFiles: status.stdout.split("\n").filter(Boolean).length,
       upstream: upstream.ok ? upstream.stdout.trim() : null,
-      pr: ghPr.ok ? JSON.parse(ghPr.stdout) : null,
-      prError: ghPr.ok ? null : ghPr.stderr || ghPr.stdout,
+      pr: parsedPr,
+      prError: parsedPr ? null : ghPr.stderr || ghPr.stdout,
     },
   };
 }
@@ -44,3 +45,10 @@ async function run(command: string, args: string[], options: { repo: string; tim
   }
 }
 
+function parseJson(value: string): unknown | null {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}

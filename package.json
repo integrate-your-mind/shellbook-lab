@@ -7,11 +7,13 @@
     "shellbook-lab": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && node scripts/copy-dashboard-assets.mjs",
+    "build": "next build --webpack && tsc -p tsconfig.cli.json",
     "dev": "node --experimental-strip-types src/cli.ts",
+    "dev:web": "next dev --webpack",
     "lint": "node scripts/lint.mjs",
+    "start:web": "next start",
     "test": "npm run build && node --test --experimental-test-coverage tests/*.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "keywords": [
     "shellbook",
@@ -22,9 +24,24 @@
   ],
   "author": "Roman Mondello",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/postcss": "^4.1.17",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "effect": "^3.19.6",
+    "lucide-react": "^0.561.0",
+    "next": "^16.2.9",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.17",
+    "zustand": "^5.0.9"
+  },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "typescript": "^5.9.3"
   },
   "engines": {

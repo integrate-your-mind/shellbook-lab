@@ -1,7 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-const roots = ["src", "tests", "scripts"];
+const roots = ["app", "components", "src", "tests", "scripts"];
 const issues = [];
 
 for (const root of roots) {
@@ -48,4 +48,3 @@ async function lintFile(path) {
     }
   });
 }
-
