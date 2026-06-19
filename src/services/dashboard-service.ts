@@ -1,5 +1,16 @@
 import { Effect } from "effect";
-import { buildAnalytics, buildHandoff, buildPresence, doctor, prWatch, readEvents } from "../lib/index.js";
+import {
+  buildAnalytics,
+  buildHandoff,
+  buildPresence,
+  buildStatusline,
+  doctor,
+  openBridge,
+  postBotMessage,
+  prWatch,
+  readEvents,
+  wrapCommand,
+} from "../lib/index.js";
 import { missionsFromEvents, replayFromEvents, type AgentMission, type ReplayFrame } from "../lib/ops.js";
 import { modules } from "../lib/plan.js";
 import { auditPrivacy } from "../lib/privacy.js";
@@ -43,6 +54,90 @@ export interface PrivacyAuditPayload {
   result: CommandResult;
 }
 
+type DashboardActionSideEffect = "none" | "local-only";
+
+interface DashboardActionConfig {
+  command: string;
+  sideEffect: DashboardActionSideEffect;
+  nextSteps: string[];
+  run: (options: DashboardServiceOptions) => Promise<CommandResult>;
+}
+
+const dashboardActions = {
+  "bot-dry-run": {
+    command: "shellbook-lab bot --kind room --target shellbook-lab --message \"Shellbook Lab dashboard dry-run\"",
+    sideEffect: "none",
+    nextSteps: ["Inspect the dry-run payload.", "Only add --send from the CLI when you intend to post."],
+    run: (options) =>
+      postBotMessage({
+        kind: "room",
+        target: "shellbook-lab",
+        message: "Shellbook Lab dashboard dry-run. No message was sent.",
+        send: false,
+        shellbookBin: options.shellbookBin,
+      }),
+  },
+  "statusline-preview": {
+    command: "shellbook-lab statusline --plain",
+    sideEffect: "none",
+    nextSteps: ["Paste the line into tmux, starship, or a shell prompt hook."],
+    run: (options) =>
+      buildStatusline({
+        stateDir: options.stateDir,
+        plain: true,
+        shellbookBin: options.shellbookBin,
+      }),
+  },
+  "bridge-create": {
+    command: "shellbook-lab bridge --session shellbook-chat --create-only",
+    sideEffect: "local-only",
+    nextSteps: ["Attach with tmux attach -t shellbook-chat.", "Keep create-only mode for dashboard safety."],
+    run: (options) =>
+      openBridge({
+        session: "shellbook-chat",
+        attach: false,
+        createOnly: true,
+        shellbookBin: options.shellbookBin,
+      }),
+  },
+  "wrap-smoke": {
+    command: "shellbook-lab wrap node -e \"process.stdout.write('shellbook-lab dashboard smoke')\" --label dashboard-smoke",
+    sideEffect: "local-only",
+    nextSteps: ["Refresh Agent Ops or Analytics to see the replay event.", "Use wrap on real commands to build history."],
+    run: (options) =>
+      wrapCommand({
+        command: process.execPath,
+        args: ["-e", "process.stdout.write('shellbook-lab dashboard smoke\\n')"],
+        label: "dashboard-smoke",
+        repo: options.repo,
+        stateDir: options.stateDir,
+      }),
+  },
+} satisfies Record<string, DashboardActionConfig>;
+
+export type DashboardActionId = keyof typeof dashboardActions;
+
+export const dashboardActionIds = Object.keys(dashboardActions) as DashboardActionId[];
+
+export interface DashboardActionPayload {
+  action: DashboardActionId;
+  command: string;
+  generatedAt: string;
+  sideEffect: DashboardActionSideEffect;
+  nextSteps: string[];
+  result: CommandResult;
+}
+
+export type DashboardActionRequest =
+  | { ok: true; action: DashboardActionId; confirmLocalOnly: boolean }
+  | { ok: false; status: number; title: string; summary: string };
+
+export type PresenceStatus = "available" | "busy" | "reviewing" | "offline";
+
+export type PresenceStatusRequest =
+  | { ok: true; status: PresenceStatus }
+  | { ok: false; statusCode: number; title: string; summary: string };
+
 export function serviceOptions(): DashboardServiceOptions {
   return {
     stateDir: process.env.SHELLBOOK_LAB_STATE_DIR ?? ".shellbook-lab",
@@ -77,6 +172,65 @@ export async function handoffPreview(options = serviceOptions()): Promise<Handof
       "handoff preview",
     ).pipe(Effect.map((result) => ({ result }))),
   );
+}
+
+export async function dashboardAction(
+  action: DashboardActionId,
+  options = serviceOptions(),
+  request: { confirmLocalOnly?: boolean } = {},
+): Promise<DashboardActionPayload> {
+  const config = dashboardActions[action];
+  if (config.sideEffect === "local-only" && request.confirmLocalOnly !== true) {
+    return actionPayload(action, failedResult("confirmation required", `${action} requires confirmLocalOnly: true.`));
+  }
+
+  return Effect.runPromise(
+    tryCommand(() => config.run(options), `dashboard action ${action}`).pipe(Effect.map((result) => actionPayload(action, result))),
+  );
+}
+
+export function isDashboardActionId(value: unknown): value is DashboardActionId {
+  return typeof value === "string" && value in dashboardActions;
+}
+
+export function validateDashboardActionRequest(body: unknown): DashboardActionRequest {
+  const data = objectData(body);
+  const action = data?.action;
+  if (!isDashboardActionId(action)) {
+    return {
+      ok: false,
+      status: 400,
+      title: "invalid dashboard action",
+      summary: `Use ${dashboardActionIds.join(", ")}.`,
+    };
+  }
+
+  const confirmLocalOnly = data?.confirmLocalOnly === true;
+  if (dashboardActions[action].sideEffect === "local-only" && !confirmLocalOnly) {
+    return {
+      ok: false,
+      status: 409,
+      title: "local action confirmation required",
+      summary: `${action} changes local machine state. Send confirmLocalOnly: true.`,
+    };
+  }
+
+  return { ok: true, action, confirmLocalOnly };
+}
+
+export function parsePresenceStatusRequest(body: unknown): PresenceStatusRequest {
+  const data = objectData(body);
+  const status = data?.status;
+  if (status === "available" || status === "busy" || status === "reviewing" || status === "offline") {
+    return { ok: true, status };
+  }
+
+  return {
+    ok: false,
+    statusCode: 400,
+    title: "invalid presence status",
+    summary: "Use available, busy, reviewing, or offline.",
+  };
 }
 
 export async function readPresenceSnapshot(options = serviceOptions()): Promise<PresencePayload> {
@@ -176,6 +330,22 @@ function failedResult(title: string, error: unknown): CommandResult {
     title,
     summary: error instanceof Error ? error.message : String(error),
   };
+}
+
+function actionPayload(action: DashboardActionId, result: CommandResult): DashboardActionPayload {
+  const config = dashboardActions[action];
+  return {
+    action,
+    command: config.command,
+    generatedAt: new Date().toISOString(),
+    sideEffect: config.sideEffect,
+    nextSteps: config.nextSteps,
+    result,
+  };
+}
+
+function objectData(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
 
 function sessionsFromEvents(events: RunEvent[]): DashboardSnapshot["sessions"] {

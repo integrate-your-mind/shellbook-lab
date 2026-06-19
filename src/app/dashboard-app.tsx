@@ -16,6 +16,7 @@ export function DashboardApp({ initialSnapshot }: { initialSnapshot: DashboardSn
     audit,
     handoff,
     presence,
+    actionResult,
     message,
     loading,
     setActiveView,
@@ -24,7 +25,7 @@ export function DashboardApp({ initialSnapshot }: { initialSnapshot: DashboardSn
     runPrivacyAudit,
     previewHandoff,
     markPresence,
-    copyCommand,
+    runDashboardAction,
   } = useDashboardStore();
   const currentSnapshot = snapshot ?? initialSnapshot;
   const activePanel = featurePanels.find((panel) => panel.id === activeView) ?? featurePanels[0];
@@ -42,13 +43,14 @@ export function DashboardApp({ initialSnapshot }: { initialSnapshot: DashboardSn
     audit,
     handoff,
     presence,
+    actionResult,
     loading,
     actions: {
       refreshSnapshot,
       runPrivacyAudit,
       previewHandoff,
       markPresence,
-      copyCommand,
+      runDashboardAction,
     },
   };
 

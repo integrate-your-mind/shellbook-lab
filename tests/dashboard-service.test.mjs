@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import test from "node:test";
-import { dashboardSnapshot, handoffPreview, privacyAudit, readPresenceSnapshot, writePresenceSnapshot } from "../dist/services/dashboard-service.js";
-import { eventPath } from "../dist/lib/events.js";
-import { tempDir } from "./helpers.mjs";
+import {
+  dashboardAction,
+  dashboardActionIds,
+  dashboardSnapshot,
+  handoffPreview,
+  parsePresenceStatusRequest,
+  privacyAudit,
+  readPresenceSnapshot,
+  validateDashboardActionRequest,
+  writePresenceSnapshot,
+} from "../dist/services/dashboard-service.js";
+import { eventPath, readEvents } from "../dist/lib/events.js";
+import { tempDir, withEnv } from "./helpers.mjs";
 
 function event(overrides = {}) {
   return {
@@ -73,4 +83,95 @@ test("dashboard service exposes handoff, privacy, and presence API payloads", as
   assert.equal(privacy.result.ok, true);
   assert.equal(written.result.data.status, "reviewing");
   assert.equal(read.result.data.status, "reviewing");
+});
+
+test("dashboard actions run real service-backed work instead of copy-only placeholders", async () => {
+  const stateDir = await tempDir("dashboard-actions");
+  const repo = await tempDir("dashboard-actions-repo");
+  const options = { stateDir, repo, shellbookBin: "missing-shellbook-bin" };
+
+  const bot = await dashboardAction("bot-dry-run", options);
+  const statusline = await dashboardAction("statusline-preview", options);
+
+  assert.equal(bot.sideEffect, "none");
+  assert.equal(bot.result.ok, true);
+  assert.equal(bot.result.data.send, false);
+  assert.match(bot.result.summary, /Would run/);
+  assert.equal(statusline.sideEffect, "none");
+  assert.equal(statusline.result.ok, true);
+  assert.match(statusline.result.summary, /Shellbook Lab/);
+});
+
+test("local-only dashboard actions require confirmation and write replay data when confirmed", async () => {
+  const stateDir = await tempDir("dashboard-wrap-action");
+  const repo = await tempDir("dashboard-wrap-repo");
+  const options = { stateDir, repo, shellbookBin: "missing-shellbook-bin" };
+
+  const denied = await dashboardAction("wrap-smoke", options);
+  assert.equal(denied.result.ok, false);
+  assert.equal((await readEvents(stateDir)).length, 0);
+
+  const first = await dashboardAction("wrap-smoke", options, { confirmLocalOnly: true });
+  const second = await dashboardAction("wrap-smoke", options, { confirmLocalOnly: true });
+  const events = await readEvents(stateDir);
+  const snapshot = await dashboardSnapshot(options);
+
+  assert.equal(first.result.ok, true);
+  assert.equal(second.result.ok, true);
+  assert.equal(events.length, 2);
+  assert.notEqual(events[0].id, events[1].id);
+  assert.equal(snapshot.replay[0].label, "dashboard-smoke");
+  assert.match(snapshot.replay[0].command, /process\.stdout\.write/);
+});
+
+test("dashboard action validation blocks unknown and unconfirmed local actions", () => {
+  assert.deepEqual(validateDashboardActionRequest({ action: "bot-dry-run" }), {
+    ok: true,
+    action: "bot-dry-run",
+    confirmLocalOnly: false,
+  });
+
+  const missing = validateDashboardActionRequest({ action: "bridge-create" });
+  const unknown = validateDashboardActionRequest({ action: "nope" });
+
+  assert.equal(missing.ok, false);
+  assert.equal(missing.status, 409);
+  assert.equal(unknown.ok, false);
+  assert.equal(unknown.status, 400);
+});
+
+test("bridge action failures are returned as JSON-safe command results", async () => {
+  const stateDir = await tempDir("dashboard-bridge-action");
+  const repo = await tempDir("dashboard-bridge-repo");
+  const binDir = await tempDir("dashboard-empty-path");
+  const result = await withEnv({ PATH: binDir }, () =>
+    dashboardAction("bridge-create", { stateDir, repo, shellbookBin: "shellbook" }, { confirmLocalOnly: true }),
+  );
+
+  assert.equal(result.action, "bridge-create");
+  assert.equal(result.sideEffect, "local-only");
+  assert.equal(result.result.ok, false);
+  assert.match(result.result.summary, /ENOENT|tmux/);
+});
+
+test("presence write validation rejects malformed or unsupported statuses", () => {
+  assert.deepEqual(parsePresenceStatusRequest({ status: "available" }), { ok: true, status: "available" });
+
+  const missing = parsePresenceStatusRequest({});
+  const unsupported = parsePresenceStatusRequest({ status: "away" });
+
+  assert.equal(missing.ok, false);
+  assert.equal(missing.statusCode, 400);
+  assert.equal(unsupported.ok, false);
+  assert.equal(unsupported.statusCode, 400);
+});
+
+test("microfrontend registry has no copy-only action gaps", async () => {
+  const source = await readFile("src/microfrontends/index.tsx", "utf8");
+
+  assert.doesNotMatch(source, /copyCommand/);
+  assert.doesNotMatch(source, /Copy dry-run/);
+  for (const actionId of dashboardActionIds) {
+    assert.match(source, new RegExp(actionId));
+  }
 });

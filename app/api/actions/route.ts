@@ -1,16 +1,8 @@
 import { NextResponse } from "next/server";
-import {
-  parsePresenceStatusRequest,
-  readPresenceSnapshot,
-  writePresenceSnapshot,
-} from "@/src/services/dashboard-service";
+import { dashboardAction, validateDashboardActionRequest } from "@/src/services/dashboard-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-export async function GET() {
-  return NextResponse.json(await readPresenceSnapshot());
-}
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -23,13 +15,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const validation = parsePresenceStatusRequest(body);
+  const validation = validateDashboardActionRequest(body);
   if (!validation.ok) {
     return NextResponse.json(
       { ok: false, title: validation.title, summary: validation.summary },
-      { status: validation.statusCode },
+      { status: validation.status },
     );
   }
 
-  return NextResponse.json(await writePresenceSnapshot(validation.status));
+  return NextResponse.json(await dashboardAction(validation.action, undefined, validation));
 }

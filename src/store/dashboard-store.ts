@@ -2,13 +2,15 @@
 
 import { create, type StateCreator } from "zustand";
 import type {
+  DashboardActionId,
+  DashboardActionPayload,
   DashboardSnapshot,
   HandoffPayload,
   PresencePayload,
   PrivacyAuditPayload,
 } from "@/src/services/dashboard-service";
 
-type LoadingKey = "snapshot" | "privacy" | "handoff" | "presence" | "copy";
+type LoadingKey = "snapshot" | "privacy" | "handoff" | "presence" | "action";
 
 interface DashboardStore {
   activeView: string;
@@ -16,6 +18,7 @@ interface DashboardStore {
   audit: PrivacyAuditPayload | null;
   handoff: HandoffPayload | null;
   presence: PresencePayload | null;
+  actionResult: DashboardActionPayload | null;
   message: string;
   loading: Record<LoadingKey, boolean>;
   setActiveView: (view: string) => void;
@@ -24,7 +27,7 @@ interface DashboardStore {
   runPrivacyAudit: () => Promise<void>;
   previewHandoff: () => Promise<void>;
   markPresence: () => Promise<void>;
-  copyCommand: (command: string) => Promise<void>;
+  runDashboardAction: (action: DashboardActionId) => Promise<void>;
 }
 
 type DashboardStoreSet = Parameters<StateCreator<DashboardStore>>[0];
@@ -34,7 +37,7 @@ const idle: DashboardStore["loading"] = {
   privacy: false,
   handoff: false,
   presence: false,
-  copy: false,
+  action: false,
 };
 
 const createDashboardStore: StateCreator<DashboardStore> = (set) => ({
@@ -43,6 +46,7 @@ const createDashboardStore: StateCreator<DashboardStore> = (set) => ({
   audit: null,
   handoff: null,
   presence: null,
+  actionResult: null,
   message: "Ready",
   loading: idle,
   setActiveView: (view) => set({ activeView: view }),
@@ -74,19 +78,18 @@ const createDashboardStore: StateCreator<DashboardStore> = (set) => ({
       });
       set({ presence, message: presence.result.summary });
     }),
-  copyCommand: async (command) =>
-    runAction(set, "copy", async () => {
-      try {
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(command);
-          set({ message: `Copied: ${command}` });
-          return;
-        }
-      } catch {
-        set({ message: `Copy unavailable; command ready: ${command}` });
+  runDashboardAction: async (action) =>
+    runAction(set, "action", async () => {
+      const actionResult = await requestJson<DashboardActionPayload>("/api/actions", {
+        method: "POST",
+        body: JSON.stringify({ action, confirmLocalOnly: true }),
+      });
+      if (actionResult.action === "wrap-smoke") {
+        const snapshot = await requestJson<DashboardSnapshot>("/api/snapshot");
+        set({ actionResult, snapshot, message: actionResult.result.summary });
         return;
       }
-      set({ message: `Copy unavailable; command ready: ${command}` });
+      set({ actionResult, message: actionResult.result.summary });
     }),
 });
 

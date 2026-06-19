@@ -11,6 +11,7 @@ Functional:
 - `pr-watch` inspects local git and optional GitHub PR state.
 - `dashboard` now launches a Next.js app with API-backed buttons.
 - `mission`, `replay`, and `tui` derive real state from presence, wrapper events, health checks, analytics, and PR probes.
+- Dashboard feature actions are now backed by `/api/actions`; bot dry-run, statusline preview, bridge create-only, and wrapper smoke return visible action results instead of copying commands.
 
 Thin but useful:
 
@@ -34,6 +35,9 @@ The riskiest areas are still modules with external processes or server lifecycle
 Risk reduced in this pass:
 
 - Dashboard routes now exist for every server-backed visible action.
+- Dashboard action IDs, command labels, side-effect levels, next steps, and runners are derived from one typed registry.
+- Local-only dashboard actions require an explicit `confirmLocalOnly: true` API request.
+- Malformed presence POST bodies now fail with HTTP 400 instead of marking the agent available.
 - `npm test` now enforces at least 85% line coverage instead of relying on a human to read the coverage table.
 - CLI boolean flag parsing is covered, including `--json`, `--version`, missing command, and invalid command paths.
 - CLI numeric flags now reject invalid, zero, negative, and out-of-range values where the value controls ports, timeouts, byte limits, replay limits, or TUI width.
@@ -60,6 +64,7 @@ Fixed:
 
 - Dashboard feature panels now derive id, command, name, and summary from the canonical `modules` list.
 - Panel actions are represented as registry metadata and dispatched through one action helper.
+- Copy-only command panels were replaced with typed server-backed action payloads and reusable action-result UI.
 - Mission Control and replay state are derived once in `src/lib/ops.ts` and reused by CLI, TUI, and the Next dashboard service.
 
 Remaining:
