@@ -12,5 +12,5 @@
     "incremental": false
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "coverage", "src/**/*.tsx", "src/app/**", "src/services/**", "src/store/**"]
+  "exclude": ["node_modules", "dist", "coverage", "src/**/*.tsx", "src/app/**", "src/store/**"]
 }

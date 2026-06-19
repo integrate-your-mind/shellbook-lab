@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { buildAnalytics, buildHandoff, buildPresence, doctor, prWatch, readEvents } from "../lib";
-import { modules } from "../lib/plan";
-import { auditPrivacy } from "../lib/privacy";
-import type { CommandResult, ModulePlan, RunEvent } from "../lib/types";
+import { buildAnalytics, buildHandoff, buildPresence, doctor, prWatch, readEvents } from "../lib/index.js";
+import { modules } from "../lib/plan.js";
+import { auditPrivacy } from "../lib/privacy.js";
+import type { CommandResult, ModulePlan, RunEvent } from "../lib/types.js";
 
 export interface DashboardServiceOptions {
   stateDir: string;

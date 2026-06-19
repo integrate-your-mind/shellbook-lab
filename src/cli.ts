@@ -59,12 +59,12 @@ Commands:
 
 async function main(argv: string[]): Promise<void> {
   const parsed = parse(argv);
-  if (parsed.flags.has("help") || parsed.flags.has("h") || parsed.command === "help" || parsed.command === "") {
-    console.log(helpText);
-    return;
-  }
   if (parsed.flags.has("version")) {
     console.log("0.1.0");
+    return;
+  }
+  if (parsed.flags.has("help") || parsed.flags.has("h") || parsed.command === "help" || parsed.command === "") {
+    console.log(helpText);
     return;
   }
 
@@ -72,8 +72,11 @@ async function main(argv: string[]): Promise<void> {
   if (parsed.command !== "statusline") {
     await printResult(result, parsed.globals);
   }
-  if (!result.ok && parsed.command !== "wrap") {
-    process.exitCode = parsed.command === "privacy" ? 3 : 2;
+  if (!result.ok) {
+    const wrappedExitCode = "exitCode" in result ? result.exitCode : undefined;
+    if (parsed.command !== "wrap" || typeof wrappedExitCode !== "number") {
+      process.exitCode = parsed.command === "privacy" ? 3 : 2;
+    }
   }
 }
 
@@ -181,6 +184,7 @@ function parse(argv: string[]): Parsed {
   };
   const flags = new Map<string, string | boolean>();
   const args: string[] = [];
+  const booleanFlags = new Set(["json", "help", "version", "send", "read", "plain", "attach", "create-only"]);
   let command = "";
   let subcommand: string | undefined;
   let stopFlags = false;
@@ -194,7 +198,7 @@ function parse(argv: string[]): Parsed {
     if (!stopFlags && token.startsWith("--")) {
       const [rawName, inlineValue] = token.slice(2).split("=", 2);
       const next = argv[index + 1];
-      const value = inlineValue ?? (next && !next.startsWith("-") ? next : true);
+      const value = inlineValue ?? (booleanFlags.has(rawName) ? true : next && !next.startsWith("-") ? next : true);
       if (value === next) {
         index += 1;
       }

@@ -18,7 +18,7 @@ Thin but useful:
 
 Still integration-heavy:
 
-- `bridge`, `doctor`, and external-process paths need more missing-binary and timeout tests.
+- `pr-watch` still needs more valid/invalid GitHub CLI branch tests.
 
 ## CRAP Risk
 
@@ -32,10 +32,14 @@ The riskiest areas are still modules with external processes or server lifecycle
 Risk reduced in this pass:
 
 - Dashboard routes now exist for every server-backed visible action.
+- Coverage now exceeds the 85% goal at 91.38% line coverage.
+- CLI boolean flag parsing is covered, including `--json`, `--version`, missing command, and invalid command paths.
+- Dashboard server start mode, bridge tmux behavior, doctor prerequisite checks, handoff JSON/Markdown, and output formatting now have focused tests.
 - `wrap` exit code behavior is locked with a regression test.
 - `statusline` duplicate output is locked with a regression test.
 - Corrupt JSONL event lines no longer discard all historical events.
 - GitHub PR JSON parsing no longer throws through `pr-watch`.
+- A native SwiftUI app now consumes the same local API boundary and has simulator build/test/runtime QA.
 
 ## Code Smells
 

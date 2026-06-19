@@ -79,3 +79,9 @@ See [docs/verification.md](docs/verification.md) for the latest proof notes.
 - shadcn-style primitives provide the local UI component base.
 
 See [docs/code-quality.md](docs/code-quality.md) for CRAP, smell, DRY, and functionality notes.
+
+## iOS App
+
+A native SwiftUI companion app lives in [ios/ShellbookLab](ios/ShellbookLab). It uses the local dashboard API at `http://127.0.0.1:8791` by default and provides dashboard, action, and presence tabs.
+
+See [docs/ios.md](docs/ios.md) for generation, build, and runtime notes.
