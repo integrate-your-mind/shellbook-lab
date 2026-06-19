@@ -1,0 +1,33 @@
+{
+  "name": "shellbook-lab",
+  "version": "0.1.0",
+  "description": "Local-first companion toolkit for Shellbook agent operations, automation, privacy checks, and dashboards.",
+  "type": "module",
+  "bin": {
+    "shellbook-lab": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && node scripts/copy-dashboard-assets.mjs",
+    "dev": "node --experimental-strip-types src/cli.ts",
+    "lint": "node scripts/lint.mjs",
+    "test": "npm run build && node --test --experimental-test-coverage tests/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "shellbook",
+    "codex",
+    "agent",
+    "cli",
+    "dashboard"
+  ],
+  "author": "Roman Mondello",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
