@@ -53,6 +53,9 @@ shellbook-lab presence             # write/read local presence snapshots
 shellbook-lab statusline           # print compact statusline text or JSON
 shellbook-lab privacy audit        # scan paths for publish blockers
 shellbook-lab analytics            # summarize local Shellbook-safe metrics
+shellbook-lab mission              # show current Agent Mission Control state
+shellbook-lab replay               # show redacted wrapped-run replay frames
+shellbook-lab tui                  # render the Shellbook Labs terminal dashboard
 shellbook-lab bridge               # open/attach Shellbook tmux/TUI
 shellbook-lab wrap                 # run an agent command and capture metadata
 shellbook-lab doctor               # verify Shellbook and local prerequisites
@@ -69,6 +72,8 @@ npm test
 npm run build
 ```
 
+`npm test` runs the production build first and enforces at least 85% line coverage with Node's built-in coverage threshold.
+
 See [docs/verification.md](docs/verification.md) for the latest proof notes.
 
 ## Dashboard Stack
@@ -77,6 +82,7 @@ See [docs/verification.md](docs/verification.md) for the latest proof notes.
 - Effect wraps dashboard service calls and degraded-mode failures.
 - Zustand owns client UI state, selected feature panel, and button actions.
 - shadcn-style primitives provide the local UI component base.
+- The Shellbook Labs TUI, Mission Control, and Run Replay Timeline reuse the same ops snapshot data as the web and iOS surfaces.
 
 See [docs/code-quality.md](docs/code-quality.md) for CRAP, smell, DRY, and functionality notes.
 

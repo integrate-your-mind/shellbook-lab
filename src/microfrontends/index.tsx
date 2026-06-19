@@ -14,7 +14,7 @@ export interface FeaturePanelProps {
   audit: PrivacyAuditPayload | null;
   handoff: HandoffPayload | null;
   presence: PresencePayload | null;
-  loading: Record<string, boolean>;
+  loading: Record<FeatureLoadingKey, boolean>;
   actions: {
     refreshSnapshot: () => Promise<void>;
     runPrivacyAudit: () => Promise<void>;
@@ -24,9 +24,12 @@ export interface FeaturePanelProps {
   };
 }
 
+export type FeatureLoadingKey = "snapshot" | "privacy" | "handoff" | "presence" | "copy";
+
 export interface FeatureAction {
   label: string;
   key: keyof FeaturePanelProps["actions"];
+  loadingKey: FeatureLoadingKey;
   command?: string;
 }
 
@@ -43,52 +46,52 @@ export interface FeaturePanel {
 const panelExtras = {
   "agent-ops-dashboard": {
     icon: Activity,
-    actions: [{ label: "Refresh", key: "refreshSnapshot" }],
+    actions: [{ label: "Refresh", key: "refreshSnapshot", loadingKey: "snapshot" }],
     render: (props) => <AgentOpsPanel {...props} />,
   },
   "room-dm-bots": {
     icon: Bot,
-    actions: [{ label: "Copy dry-run", key: "copyCommand" }],
+    actions: [{ label: "Copy dry-run", key: "copyCommand", loadingKey: "copy" }],
     render: (props) => <CommandPanel {...props} title="Room and DM bots" />,
   },
   "pr-ci-watcher": {
     icon: GitPullRequest,
-    actions: [{ label: "Refresh PR", key: "refreshSnapshot" }],
+    actions: [{ label: "Refresh PR", key: "refreshSnapshot", loadingKey: "snapshot" }],
     render: (props) => <PrPanel {...props} />,
   },
   "handoff-cards": {
     icon: Handshake,
-    actions: [{ label: "Generate preview", key: "previewHandoff" }],
+    actions: [{ label: "Generate preview", key: "previewHandoff", loadingKey: "handoff" }],
     render: (props) => <HandoffPanel {...props} />,
   },
   "team-presence": {
     icon: Users,
-    actions: [{ label: "Mark available", key: "markPresence" }],
+    actions: [{ label: "Mark available", key: "markPresence", loadingKey: "presence" }],
     render: (props) => <PresencePanel {...props} />,
   },
   "statusline-plugin": {
     icon: Radio,
-    actions: [{ label: "Copy command", key: "copyCommand" }],
+    actions: [{ label: "Copy command", key: "copyCommand", loadingKey: "copy" }],
     render: (props) => <CommandPanel {...props} title="Statusline plugin" />,
   },
   "privacy-auditor": {
     icon: ScanSearch,
-    actions: [{ label: "Run local audit", key: "runPrivacyAudit" }],
+    actions: [{ label: "Run local audit", key: "runPrivacyAudit", loadingKey: "privacy" }],
     render: (props) => <PrivacyPanel {...props} />,
   },
   "personal-analytics": {
     icon: ClipboardCheck,
-    actions: [{ label: "Refresh metrics", key: "refreshSnapshot" }],
+    actions: [{ label: "Refresh metrics", key: "refreshSnapshot", loadingKey: "snapshot" }],
     render: (props) => <AnalyticsPanel {...props} />,
   },
   "shellbook-bridge": {
     icon: Waypoints,
-    actions: [{ label: "Copy bridge", key: "copyCommand" }],
+    actions: [{ label: "Copy bridge", key: "copyCommand", loadingKey: "copy" }],
     render: (props) => <CommandPanel {...props} title="Shellbook bridge" />,
   },
   "codex-wrapper-enhancements": {
     icon: Terminal,
-    actions: [{ label: "Copy wrapper", key: "copyCommand" }],
+    actions: [{ label: "Copy wrapper", key: "copyCommand", loadingKey: "copy" }],
     render: (props) => <CommandPanel {...props} title="Codex wrapper" />,
   },
 } satisfies Record<string, Omit<FeaturePanel, "id" | "name" | "command" | "summary">>;
@@ -111,28 +114,101 @@ export const featurePanels: FeaturePanel[] = modules.map((module) => {
 
 function AgentOpsPanel({ snapshot }: FeaturePanelProps) {
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Live health</CardTitle>
-          <CardDescription>{snapshot?.health.summary ?? "Waiting for snapshot."}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          {(snapshot?.metrics ?? []).map((metric) => (
-            <div key={metric.label} className="rounded-md border border-border bg-background p-3">
-              <div className="text-xs text-muted-foreground">{metric.label}</div>
-              <div className="mt-1 flex items-center justify-between gap-2 text-lg font-semibold">
-                <span>{metric.value}</span>
-                <Badge variant={metric.tone === "ok" ? "ok" : metric.tone === "warn" ? "warn" : "secondary"}>
-                  {metric.tone}
-                </Badge>
+    <div className="grid gap-4">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Live health</CardTitle>
+            <CardDescription>{snapshot?.health.summary ?? "Waiting for snapshot."}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            {(snapshot?.metrics ?? []).map((metric) => (
+              <div key={metric.label} className="rounded-md border border-border bg-background p-3">
+                <div className="text-xs text-muted-foreground">{metric.label}</div>
+                <div className="mt-1 flex items-center justify-between gap-2 text-lg font-semibold">
+                  <span>{metric.value}</span>
+                  <Badge variant={metric.tone === "ok" ? "ok" : metric.tone === "warn" ? "warn" : "secondary"}>
+                    {metric.tone}
+                  </Badge>
+                </div>
               </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-      <FeedCard snapshot={snapshot} />
+            ))}
+          </CardContent>
+        </Card>
+        <FeedCard snapshot={snapshot} />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <MissionControlCard snapshot={snapshot} />
+        <ReplayTimelineCard snapshot={snapshot} />
+      </div>
     </div>
+  );
+}
+
+function MissionControlCard({ snapshot }: { snapshot: DashboardSnapshot | null }) {
+  const missions = snapshot?.missions ?? [];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Mission Control</CardTitle>
+        <CardDescription>Active agent state derived from wrapped runs and local presence.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {missions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No mission state loaded. Refresh the dashboard or wrap a command to seed Mission Control.</p>
+        ) : (
+          missions.map((mission) => (
+            <div key={`${mission.agent}-${mission.repo}`} className="rounded-md border border-border bg-background p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{mission.agent}</div>
+                  <div className="truncate text-xs text-muted-foreground">{mission.repo}</div>
+                </div>
+                <Badge variant={mission.status === "review" || mission.status === "stale" ? "warn" : "ok"}>{mission.status}</Badge>
+              </div>
+              <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                <span>last run {mission.lastRunAge}</span>
+                <span>duration {mission.duration}</span>
+                <span>exit {mission.exitCode ?? "none"}</span>
+              </div>
+              <p className="mt-2 text-sm">{mission.nextAction}</p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReplayTimelineCard({ snapshot }: { snapshot: DashboardSnapshot | null }) {
+  const replay = snapshot?.replay ?? [];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Run Replay Timeline</CardTitle>
+        <CardDescription>Recent wrapped commands with outcome and next action.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {replay.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No replay frames yet. Run shellbook-lab wrap to capture one.</p>
+        ) : (
+          replay.map((frame) => (
+            <div key={frame.id} className="rounded-md border border-border bg-background p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{frame.command}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {frame.label} in {frame.repo} after {frame.duration}
+                  </div>
+                </div>
+                <Badge variant={frame.status === "ok" ? "ok" : "warn"}>{frame.status}</Badge>
+              </div>
+              <p className="mt-2 text-sm">{frame.nextAction}</p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

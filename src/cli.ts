@@ -4,9 +4,11 @@ import {
   auditPrivacy,
   buildAnalytics,
   buildHandoff,
+  buildOpsState,
   buildPlan,
   buildPresence,
   buildStatusline,
+  buildTui,
   doctor,
   openBridge,
   postBotMessage,
@@ -52,6 +54,9 @@ Commands:
   statusline [--plain]
   privacy audit [paths...] [--max-bytes 1000000]
   analytics
+  mission [--limit 8]
+  replay [--limit 8]
+  tui [--view all|mission|replay] [--width 100] [--no-color]
   bridge [--session shellbook-chat] [--attach] [--create-only]
   wrap <command> [args...] [--label <label>] [--repo <path>]
   doctor
@@ -69,7 +74,7 @@ async function main(argv: string[]): Promise<void> {
   }
 
   const result = await run(parsed);
-  if (parsed.command !== "statusline") {
+  if (!["statusline", "tui"].includes(parsed.command)) {
     await printResult(result, parsed.globals);
   }
   if (!result.ok) {
@@ -83,7 +88,7 @@ async function main(argv: string[]): Promise<void> {
 async function run(parsed: Parsed): Promise<CommandResult> {
   const flag = (name: string, fallback = "") => stringFlag(parsed.flags, name, fallback);
   const bool = (name: string) => parsed.flags.get(name) === true;
-  const number = (name: string, fallback: number) => Number.parseInt(flag(name, String(fallback)), 10);
+  const number = (name: string, fallback: number, bounds: NumberBounds = {}) => numberFlag(parsed.flags, name, fallback, bounds);
 
   switch (parsed.command) {
     case "plan":
@@ -91,7 +96,7 @@ async function run(parsed: Parsed): Promise<CommandResult> {
     case "dashboard":
       return startDashboard({
         host: flag("host", "127.0.0.1"),
-        port: number("port", 8791),
+        port: number("port", 8791, { min: 1, max: 65535 }),
         stateDir: parsed.globals.stateDir,
         open: flag("open", "false") === "true",
         shellbookBin: parsed.globals.shellbookBin,
@@ -106,7 +111,7 @@ async function run(parsed: Parsed): Promise<CommandResult> {
         shellbookBin: parsed.globals.shellbookBin,
       });
     case "pr-watch":
-      return prWatch({ repo: flag("repo", process.cwd()), timeoutMs: number("timeout-ms", 8000) });
+      return prWatch({ repo: flag("repo", process.cwd()), timeoutMs: number("timeout-ms", 8000, { min: 1, max: 120_000 }) });
     case "handoff":
       return buildHandoff({
         title: flag("title", "Shellbook Lab handoff"),
@@ -143,10 +148,47 @@ async function run(parsed: Parsed): Promise<CommandResult> {
       }
       return auditPrivacy({
         paths: parsed.args.length > 0 ? parsed.args : ["."],
-        maxBytes: number("max-bytes", 1_000_000),
+        maxBytes: number("max-bytes", 1_000_000, { min: 1, max: 50_000_000 }),
       });
     case "analytics":
       return buildAnalytics({ stateDir: parsed.globals.stateDir, shellbookBin: parsed.globals.shellbookBin });
+    case "mission": {
+      const result = await buildOpsState({
+        stateDir: parsed.globals.stateDir,
+        shellbookBin: parsed.globals.shellbookBin,
+        repo: process.cwd(),
+        limit: number("limit", 8, { min: 1, max: 100 }),
+      });
+      const missions = result.data?.missions ?? [];
+      return { ok: result.ok, title: "mission control", summary: `${missions.length} mission(s) tracked.`, data: missions };
+    }
+    case "replay": {
+      const result = await buildOpsState({
+        stateDir: parsed.globals.stateDir,
+        shellbookBin: parsed.globals.shellbookBin,
+        repo: process.cwd(),
+        limit: number("limit", 8, { min: 1, max: 100 }),
+      });
+      const replay = result.data?.replay ?? [];
+      return { ok: result.ok, title: "run replay timeline", summary: `${replay.length} replay frame(s) loaded.`, data: replay };
+    }
+    case "tui": {
+      const result = await buildTui({
+        stateDir: parsed.globals.stateDir,
+        shellbookBin: parsed.globals.shellbookBin,
+        repo: process.cwd(),
+        limit: number("limit", 8, { min: 1, max: 100 }),
+        view: flag("view", "all"),
+        color: !bool("no-color"),
+        width: number("width", 100, { min: 72, max: 140 }),
+      });
+      if (parsed.globals.json) {
+        console.log(formatJson(result));
+      } else {
+        console.log(result.screen);
+      }
+      return result;
+    }
     case "bridge":
       return openBridge({
         session: flag("session", "shellbook-chat"),
@@ -184,7 +226,7 @@ function parse(argv: string[]): Parsed {
   };
   const flags = new Map<string, string | boolean>();
   const args: string[] = [];
-  const booleanFlags = new Set(["json", "help", "version", "send", "read", "plain", "attach", "create-only"]);
+  const booleanFlags = new Set(["json", "help", "version", "send", "read", "plain", "attach", "create-only", "no-color"]);
   let command = "";
   let subcommand: string | undefined;
   let stopFlags = false;
@@ -237,6 +279,32 @@ function stringFlag(flags: Map<string, string | boolean>, name: string, fallback
 function optionalStringFlag(flags: Map<string, string | boolean>, name: string): string | undefined {
   const value = flags.get(name);
   return typeof value === "string" ? value : undefined;
+}
+
+interface NumberBounds {
+  min?: number;
+  max?: number;
+}
+
+function numberFlag(flags: Map<string, string | boolean>, name: string, fallback: number, bounds: NumberBounds): number {
+  const value = flags.get(name);
+  if (value === undefined) {
+    return fallback;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`--${name} requires an integer value.`);
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`--${name} must be an integer.`);
+  }
+  if (bounds.min !== undefined && parsed < bounds.min) {
+    throw new Error(`--${name} must be at least ${bounds.min}.`);
+  }
+  if (bounds.max !== undefined && parsed > bounds.max) {
+    throw new Error(`--${name} must be at most ${bounds.max}.`);
+  }
+  return parsed;
 }
 
 function requireFlags(flags: Map<string, string | boolean>, names: string[]): void {

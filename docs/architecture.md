@@ -14,6 +14,8 @@ The current dashboard is a Next.js App Router app. It keeps the CLI as the stabl
 - `statusline`: compact terminal-friendly summaries.
 - `privacy`: publish gate for secrets, Shellbook auth files, DB dumps, and transcripts.
 - `analytics`: local metrics from Shellbook-safe sources and wrapper events.
+- `ops`: derives Mission Control and Run Replay Timeline state from local presence and wrapper events.
+- `tui`: renders the same ops state as a terminal dashboard.
 - `bridge`: opens Shellbook TUI/tmux sessions through public commands.
 - `wrap`: opt-in agent command wrapper with exit-code capture.
 
@@ -29,8 +31,11 @@ The dashboard composes these as microfrontend-style feature panels in `src/micro
 - privacy audit
 - handoff preview
 - presence read/write
+- Mission Control and replay frames
 
 The Next API routes under `app/api/**/route.ts` are the HTTP boundary. They run in the Node.js runtime so filesystem, git, tmux, and Shellbook probes stay out of the browser bundle.
+
+The Shellbook Labs TUI calls the same ops service primitives as the web dashboard. That keeps the CLI, TUI, Next dashboard, and iOS app on one local DTO shape instead of inventing per-surface logic.
 
 ## Data
 
@@ -44,6 +49,8 @@ Default state root:
 ```
 
 This repository does not store raw Shellbook databases, auth configs, transcripts, prompts, source code snapshots, or terminal output. Wrapped command output is not captured by default.
+
+Wrapped run metadata stores the command and argv locally so the user can audit what ran. Replay display surfaces redact token-like argv values before rendering through `shellbook-lab replay`, `shellbook-lab tui`, `/api/snapshot`, the web dashboard, or iOS clients.
 
 ## Shellbook Boundary
 

@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { buildAnalytics, buildHandoff, buildPresence, doctor, prWatch, readEvents } from "../lib/index.js";
+import { missionsFromEvents, replayFromEvents, type AgentMission, type ReplayFrame } from "../lib/ops.js";
 import { modules } from "../lib/plan.js";
 import { auditPrivacy } from "../lib/privacy.js";
 import type { CommandResult, ModulePlan, RunEvent } from "../lib/types.js";
@@ -23,6 +24,8 @@ export interface DashboardSnapshot {
   sessions: Array<{ agent: string; repo: string; status: string; duration: string }>;
   pr: unknown;
   feed: Array<{ time: string; text: string }>;
+  missions: AgentMission[];
+  replay: ReplayFrame[];
   health: CommandResult;
   analytics: CommandResult;
   presence: CommandResult;
@@ -143,6 +146,8 @@ function snapshotProgram(options: DashboardServiceOptions) {
         sessions: sessionsFromEvents(recent),
         pr: prResult.data ?? { branch: "unknown", status: prResult.summary },
         feed: feedFromEvents(recent),
+        missions: missionsFromEvents(runEvents, presenceResult, options.repo),
+        replay: replayFromEvents(runEvents, 8),
         health: healthResult,
         analytics: analyticsResult,
         presence: presenceResult,

@@ -37,7 +37,7 @@ const idle: DashboardStore["loading"] = {
   copy: false,
 };
 
-const createDashboardStore: StateCreator<DashboardStore> = (set, get) => ({
+const createDashboardStore: StateCreator<DashboardStore> = (set) => ({
   activeView: "agent-ops-dashboard",
   snapshot: null,
   audit: null,
@@ -47,7 +47,7 @@ const createDashboardStore: StateCreator<DashboardStore> = (set, get) => ({
   loading: idle,
   setActiveView: (view) => set({ activeView: view }),
   setInitialSnapshot: (snapshot) => {
-    if (!get().snapshot) {
+    if (snapshot) {
       set({ snapshot });
     }
   },

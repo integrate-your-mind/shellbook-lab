@@ -28,6 +28,8 @@ export function DashboardApp({ initialSnapshot }: { initialSnapshot: DashboardSn
   } = useDashboardStore();
   const currentSnapshot = snapshot ?? initialSnapshot;
   const activePanel = featurePanels.find((panel) => panel.id === activeView) ?? featurePanels[0];
+  const activeAction = activePanel.actions[0];
+  const activeActionLoading = loading[activeAction.loadingKey];
   const Icon = activePanel.icon;
 
   useEffect(() => {
@@ -67,7 +69,9 @@ export function DashboardApp({ initialSnapshot }: { initialSnapshot: DashboardSn
               <RefreshCw className={cn("size-4", loading.snapshot && "animate-spin")} />
               Refresh
             </Button>
-            <Badge variant="secondary">{message}</Badge>
+            <Badge className="max-w-full whitespace-normal break-words text-left leading-relaxed" variant="secondary">
+              {message}
+            </Badge>
           </div>
         </header>
 
@@ -110,7 +114,9 @@ export function DashboardApp({ initialSnapshot }: { initialSnapshot: DashboardSn
                   <p className="truncate text-sm text-muted-foreground">{activePanel.command}</p>
                 </div>
               </div>
-              <Button onClick={() => runFeatureAction(activePanel.actions[0], panelProps)}>{activePanel.actions[0].label}</Button>
+              <Button disabled={activeActionLoading} onClick={() => runFeatureAction(activeAction, panelProps)}>
+                {activeActionLoading ? "Working..." : activeAction.label}
+              </Button>
             </div>
             {activePanel.render(panelProps)}
           </section>

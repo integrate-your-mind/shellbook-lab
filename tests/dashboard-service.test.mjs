@@ -34,8 +34,28 @@ test("dashboard snapshot degrades failed tools into rendered dashboard data", as
   assert.equal(snapshot.metrics.find((metric) => metric.label === "Failed runs").tone, "warn");
   assert.equal(snapshot.sessions[0].status, "review");
   assert.match(snapshot.feed[0].text, /exited 1/);
+  assert.equal(snapshot.missions.length, 1);
+  assert.equal(snapshot.missions[0].status, "review");
+  assert.equal(snapshot.replay.length, 1);
+  assert.equal(snapshot.replay[0].status, "failed");
   assert.equal(snapshot.health.ok, false);
   assert.equal(snapshot.presence.ok, true);
+});
+
+test("dashboard snapshot exposes redacted mission control and replay payloads", async () => {
+  const stateDir = await tempDir("dashboard-service-ops");
+  const repo = await tempDir("dashboard-ops-repo");
+  const fakeKey = `s${"k"}-1234567890abcdefghijklmnop`;
+  await writeFile(
+    eventPath(stateDir),
+    `${JSON.stringify(event({ id: "evt-secret", args: ["--token", fakeKey], exitCode: 0 }))}\n`,
+  );
+
+  const snapshot = await dashboardSnapshot({ stateDir, repo, shellbookBin: "missing-shellbook-bin" });
+
+  assert.equal(snapshot.missions[0].repo, "shellbook-lab");
+  assert.match(snapshot.replay[0].command, /--token \[redacted\]/);
+  assert.doesNotMatch(snapshot.replay[0].command, new RegExp(fakeKey));
 });
 
 test("dashboard service exposes handoff, privacy, and presence API payloads", async () => {
