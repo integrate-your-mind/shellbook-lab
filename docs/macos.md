@@ -29,6 +29,8 @@ The Codex app Run action points at:
 
 The script builds the SwiftPM target, stages `dist/ShellbookLabMac.app`, launches it with `/usr/bin/open -n`, and supports `--debug`, `--logs`, `--telemetry`, and `--verify`.
 
+On launch, the app places its main window on the preferred external display. It chooses the leftmost Samsung-family display when AppKit exposes one by name, then falls back to the leftmost display by geometry so QA runs do not open on the Built-in Retina Display.
+
 ## Verification
 
 Current proof:

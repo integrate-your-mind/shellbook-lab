@@ -5,6 +5,13 @@ final class ShellbookLabAppDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.regular)
     NSApp.activate(ignoringOtherApps: true)
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+      WindowPlacement.placeMainWindow()
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+      WindowPlacement.placeMainWindow()
+    }
   }
 }
 

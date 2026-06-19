@@ -2,6 +2,41 @@ import XCTest
 @testable import ShellbookLabMac
 
 final class ShellbookLabMacTests: XCTestCase {
+  func testWindowPlacementPrefersLeftmostSamsungDisplay() {
+    let displays = [
+      DisplayDescriptor(name: "Built-in Retina Display", visibleFrame: CGRect(x: 0, y: 0, width: 1728, height: 1084)),
+      DisplayDescriptor(name: "LS32D70xE", visibleFrame: CGRect(x: 1728, y: 28, width: 3360, height: 1890)),
+      DisplayDescriptor(name: "LS32CG51x", visibleFrame: CGRect(x: -2880, y: -413, width: 1440, height: 2560)),
+      DisplayDescriptor(name: "Odyssey G5", visibleFrame: CGRect(x: -1440, y: -413, width: 1440, height: 2560))
+    ]
+
+    let display = WindowPlacement.preferredDisplay(from: displays)
+
+    XCTAssertEqual(display?.name, "LS32CG51x")
+  }
+
+  func testWindowPlacementFallsBackToLeftmostDisplay() {
+    let displays = [
+      DisplayDescriptor(name: "Built-in Retina Display", visibleFrame: CGRect(x: 0, y: 0, width: 1728, height: 1084)),
+      DisplayDescriptor(name: "External", visibleFrame: CGRect(x: -1200, y: 0, width: 1200, height: 900))
+    ]
+
+    let display = WindowPlacement.preferredDisplay(from: displays)
+
+    XCTAssertEqual(display?.name, "External")
+  }
+
+  func testWindowFrameStaysInsideVisibleDisplay() {
+    let display = DisplayDescriptor(name: "LS32CG51x", visibleFrame: CGRect(x: -2880, y: -413, width: 1440, height: 2560))
+
+    let frame = WindowPlacement.windowFrame(for: display)
+
+    XCTAssertEqual(frame.origin.x, -2840)
+    XCTAssertEqual(frame.size.width, 1100)
+    XCTAssertEqual(frame.size.height, 780)
+    XCTAssertTrue(display.visibleFrame.contains(frame))
+  }
+
   func testDecodesDashboardSnapshotWithMissionAndReplay() throws {
     let json = """
     {

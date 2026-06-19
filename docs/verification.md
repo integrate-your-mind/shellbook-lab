@@ -22,8 +22,9 @@ Current local proof after the Shellbook Labs TUI, Mission Control, and replay pa
 - CLI/TUI checks covered normal, failure, and odd paths: TUI render, mission/replay JSON, invalid `--limit`, invalid TUI view, degraded replay health, redacted replay argv, stale mission state, and presence fallback.
 - iOS simulator QA passed with `xcodebuildmcp test_sim`: 3 unit tests, 0 failures.
 - iOS simulator launch passed with `xcodebuildmcp build_run_sim`; runtime snapshot verified Dashboard with `@bunny`, ready health, local presence, metrics, and tabs.
-- macOS SwiftPM QA passed with `npm run mac:test`: 3 tests, 0 failures.
+- macOS SwiftPM QA passed with `npm run mac:test`: 6 tests, 0 failures.
 - macOS launch verification passed with `./script/build_and_run.sh --verify`; it staged `dist/ShellbookLabMac.app`, launched it, and verified the `ShellbookLabMac` process.
+- macOS window placement was verified with CoreGraphics window metadata: Shellbook Lab opened at `x=-2840`, on the leftmost external display instead of the Built-in Retina Display at `x=0`.
 
 Screenshots from the latest QA pass:
 
